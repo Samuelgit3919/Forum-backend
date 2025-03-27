@@ -95,6 +95,8 @@ async function login(req, res) {
     const userName = user[0].username;
     const userId = user[0].userid;
 
+    console.log(userName);
+
     const token = jwt.sign(
       {
         userName,
@@ -120,11 +122,10 @@ async function login(req, res) {
 // End of Login function
 
 async function checkUser(req, res) {
-  const user = req.user;
-  res.send({
-    user,
-    message: "User Verified",
-  });
+  const username = req.user.userName;
+  const userid = req.user.userId;
+  console.log(userid, username);
+  res.status(StatusCodes.OK).json({ msg: "sami", username, userid });
 }
 
 async function logout(req, res) {
@@ -132,5 +133,34 @@ async function logout(req, res) {
     message: "User logged out successfully",
   });
 }
+
+// async function googleLogin(req, res) {
+//   const { token } = req.body;
+//   if (!token) {
+//     return res.status(StatusCodes.BAD_REQUEST).json({
+//       error: "Bad Request",
+//       message: "Token is required",
+//     });
+//   }
+//   try {
+//     const ticket = await client.verifyIdToken({
+//       idToken: token,
+//       audience: process.env.GOOGLE_CLIENT_ID,
+//     });
+//     const payload = ticket.getPayload();
+//     // Create or find user in your DB, generate JWT
+//     const appToken = jwt.sign(
+//       {
+//         userName: payload.name,
+//         userId: payload.sub,
+//       },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "1d" }
+//     );
+//     res.json({ token: appToken, user: payload });
+//   } catch (error) {
+//     res.status(400).json({ message: "Invalid Google token" });
+//   }
+// }
 
 module.exports = { register, login, checkUser, logout };

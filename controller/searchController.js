@@ -1,8 +1,4 @@
-const jwt = require("jsonwebtoken");
-const dbConn = require("../DB/dbConfig");
-const bcrypt = require("bcrypt");
-const { v4: uuidv4 } = require("uuid");
-
+const dbConn = require("../db/dbConfig");
 const { StatusCodes } = require("http-status-codes");
 
 async function getRelatedData(req, res) {
@@ -13,7 +9,7 @@ async function getRelatedData(req, res) {
     });
   }
   try {
-    const whoAMI = 'SELECT Q.* FROM questions Q WHERE title LIKE ?';
+    const whoAMI = "SELECT Q.* FROM questions Q WHERE title LIKE ?";
     const [data] = await dbConn.query(whoAMI, [`%${title}%`]);
 
     if (data.length === 0) {

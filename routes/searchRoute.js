@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const {getRelatedData} =require("../Controller/searchController");
+const { getRelatedData } = require("../controller/searchController");
 
-router.get("/",getRelatedData);
+router.get("/", getRelatedData);
 
-module.exports=router
+module.exports = router;

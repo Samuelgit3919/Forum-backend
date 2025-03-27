@@ -4,7 +4,6 @@ const { StatusCodes } = require("http-status-codes");
 async function getAnswer(req, res) {
   const { question_id } = req.params;
 
-  console.log(question_id);
   if (!question_id) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       error: "Bad Request",
@@ -63,6 +62,7 @@ async function getAnswer(req, res) {
 async function postAnswer(req, res) {
   // const { userId } =
   const { answer } = req.body;
+  
   const { question_id } = req.params;
   console.log("my data to post answer", question_id);
 

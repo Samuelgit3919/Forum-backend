@@ -12,7 +12,7 @@ app.use(express.json());
 //user middleware file
 const userRoute = require("./routes/userRoute");
 const questionRoute = require("./routes/questionRoute");
-const authMiddleware = require("./Middleware/authMiddleware");
+const authMiddleware = require("./middleware/authMiddleware");
 
 //!answer route
 const answerRoute = require("./routes/answerRoute");
