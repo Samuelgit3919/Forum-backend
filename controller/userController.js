@@ -16,7 +16,7 @@ async function register(req, res) {
 
   try {
     const [existingUser] = await dbConnection.query(
-      "select userid,username from users where username=? or email=?",
+      "select user_id,username from users where username=? or email=?",
       [username, email]
     );
 
@@ -74,7 +74,7 @@ async function login(req, res) {
 
   try {
     const [user] = await dbConnection.query(
-      "select email,userid ,username ,password from users where  email=? ",
+      "select email,user_id ,username ,password from users where  email=? ",
       [email]
     );
 
@@ -93,9 +93,9 @@ async function login(req, res) {
     }
 
     const userName = user[0].username;
-    const userId = user[0].userid;
+    const userId = user[0].user_id;
 
-    console.log(userName);
+    console.log(userName, userId);
 
     const token = jwt.sign(
       {
@@ -123,7 +123,7 @@ async function login(req, res) {
 
 async function checkUser(req, res) {
   const username = req.user.userName;
-  const userid = req.user.userId;
+  const userid = req.user.user_id;
   console.log(userid, username);
   res.status(StatusCodes.OK).json({ msg: "sami", username, userid });
 }
@@ -134,33 +134,6 @@ async function logout(req, res) {
   });
 }
 
-// async function googleLogin(req, res) {
-//   const { token } = req.body;
-//   if (!token) {
-//     return res.status(StatusCodes.BAD_REQUEST).json({
-//       error: "Bad Request",
-//       message: "Token is required",
-//     });
-//   }
-//   try {
-//     const ticket = await client.verifyIdToken({
-//       idToken: token,
-//       audience: process.env.GOOGLE_CLIENT_ID,
-//     });
-//     const payload = ticket.getPayload();
-//     // Create or find user in your DB, generate JWT
-//     const appToken = jwt.sign(
-//       {
-//         userName: payload.name,
-//         userId: payload.sub,
-//       },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "1d" }
-//     );
-//     res.json({ token: appToken, user: payload });
-//   } catch (error) {
-//     res.status(400).json({ message: "Invalid Google token" });
-//   }
-// }
+
 
 module.exports = { register, login, checkUser, logout };

@@ -14,13 +14,12 @@ const userRoute = require("./routes/userRoute");
 const questionRoute = require("./routes/questionRoute");
 const authMiddleware = require("./middleware/authMiddleware");
 
-//!answer route
 const answerRoute = require("./routes/answerRoute");
 
-//!search route
+
 const searchData = require("./routes/searchRoute");
 
-//!questions middleware file
+
 app.get("/", (req, res) => {
   res.send("Welcome to the forum!");
 });
@@ -37,7 +36,7 @@ async function start() {
 
     app.listen(PORT);
     console.log("DB is Connected");
-    console.log(`You server is runnning at http://localhost:${PORT}`);
+    console.log(`You server is running at http://localhost:${PORT}`);
   } catch (err) {
     console.log(err.message);
   }
