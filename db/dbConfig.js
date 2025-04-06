@@ -1,11 +1,11 @@
 const mysql2 = require("mysql2");
 
 const dbConn = mysql2.createPool({
-  host: "sql8.freesqldatabase.com",
-  user: "sql8770399",
-  database: "sql8770399",
-  password: "WxU92AiCJG",
-  port: 3306,
+  host: "dpg-cvp5bhk9c44c73bttgq0-a",
+  user: "evangadi_forum_app_user",
+  database: "evangadi_forum_app",
+  password: "kDcjBBPIbMveq9OW58VHVZGcjYHNFGFJ",
+  port: 5432,
   connectionLimit: 10,
 });
 
