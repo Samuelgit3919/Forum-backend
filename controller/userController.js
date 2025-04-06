@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 
 async function register(req, res) {
   const { username, first_name, last_name, email, password } = req.body;
+  console.log("register", username, first_name, last_name, email, password);
 
   if (!username || !first_name || !last_name || !email || !password) {
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -133,7 +134,5 @@ async function logout(req, res) {
     message: "User logged out successfully",
   });
 }
-
-
 
 module.exports = { register, login, checkUser, logout };

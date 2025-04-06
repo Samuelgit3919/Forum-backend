@@ -16,9 +16,7 @@ const authMiddleware = require("./middleware/authMiddleware");
 
 const answerRoute = require("./routes/answerRoute");
 
-
 const searchData = require("./routes/searchRoute");
-
 
 app.get("/", (req, res) => {
   res.send("Welcome to the forum!");
