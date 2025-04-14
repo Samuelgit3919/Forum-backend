@@ -31,7 +31,7 @@ async function askQuestion(req, res) {
   // Change from user_id to userId to match what's in your token
   const { userId } = req.user; // Changed from user_id to userId
 
-  console.log("User ID from token:", userId); // Better logging
+  // console.log("User ID from token:", userId); // Better logging
   if (!title || !description) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       error: "Bad Request",
@@ -42,14 +42,13 @@ async function askQuestion(req, res) {
   try {
     const questionId = uuidv4();
     console.log("Generated question ID:", questionId);
-    const postQue =
-      "INSERT INTO questions (question_id, title, description, user_id) VALUES (?,?,?,?)";
+   const postQue = "INSERT INTO questions (title, description, user_id) VALUES (?,?,?)";
 
-    await dbConn.query(postQue, [questionId, title, description, userId]); // Using userId here
-
+    const [result] = await dbConn.query(postQue, [title, description, userId]);
+    console.log("Insert result:", result); // Log the result of the insert operation
     return res.status(StatusCodes.CREATED).json({
       message: "Question posted successfully.",
-      questionId: questionId,
+      questionId: result.insertId,
     });
   } catch (err) {
     console.log("Database error:", err.message);
