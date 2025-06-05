@@ -1,7 +1,5 @@
 const dbConn = require("../db/dbConfig");
-
 const { StatusCodes } = require("http-status-codes");
-
 
 async function getAnswer(req, res) {
   const { question_id } = req.params;
@@ -25,11 +23,11 @@ async function getAnswer(req, res) {
       FROM answers A 
       JOIN users U ON U.user_id = A.user_id
       JOIN questions Q ON Q.question_id = A.question_id 
-      WHERE A.question_id = ? 
+      WHERE A.question_id = $1
       ORDER BY A.created_at DESC
     `;
 
-    const [rows] = await dbConn.query(query, [question_id]);
+    const { rows } = await dbConn.query(query, [question_id]);
 
     if (rows.length === 0) {
       return res.status(StatusCodes.NOT_FOUND).json({
@@ -46,7 +44,7 @@ async function getAnswer(req, res) {
       createdAt: answer.created_at,
     }));
 
-    return res.json({
+    return res.status(StatusCodes.OK).json({
       questionTitle: rows[0].title,
       answers: formattedAnswers,
     });
@@ -60,40 +58,36 @@ async function getAnswer(req, res) {
 }
 
 async function postAnswer(req, res) {
-  // const { userId } =
   const { answer } = req.body;
-  
   const { question_id } = req.params;
-  console.log("my data to post answer", question_id);
-
   const { userId } = req.user;
-  console.log("thiiisss", userId);
 
   if (!question_id || !answer) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       error: "Bad Request",
-      message: "Please provide answer and question ID",
+      message: "Please provide answer content and question ID.",
     });
   }
 
   try {
-    const insertAnswer =
-      "INSERT into answers(question_id,content,user_id)  value (?,?,?)";
+    const insertAnswer = `
+      INSERT INTO answers (question_id, content, user_id) 
+      VALUES ($1, $2, $3)
+      RETURNING answer_id
+    `;
 
-    const check = await dbConn.query(insertAnswer, [
-      question_id,
-      answer,
-      userId,
-    ]);
+    const { rows } = await dbConn.query(insertAnswer, [question_id, answer, userId]);
+    const insertedAnswerId = rows[0].answer_id;
 
-    // console.log("yessss")
     return res.status(StatusCodes.CREATED).json({
-      message: "Answer posted successfully",
+      message: "Answer posted successfully.",
+      answerId: insertedAnswerId,
     });
   } catch (err) {
+    console.error("postAnswer Database error:", err.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: err.message,
-      message: "Something Went Wrong .try again later!ss",
+      error: "Internal Server Error",
+      message: "Something went wrong. Please try again later.",
     });
   }
 }

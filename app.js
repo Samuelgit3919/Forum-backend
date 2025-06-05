@@ -30,7 +30,7 @@ app.use("/api/answer", authMiddleware, answerRoute);
 app.use("/api/search", authMiddleware, searchData);
 async function start() {
   try {
-    const result = await dbConn.execute("select 'test'");
+    const result = await dbConn.query("select 'test'");
 
     app.listen(PORT);
     console.log("DB is Connected");

@@ -1,16 +1,24 @@
-const dbConn = require("../db/dbConfig");
+const dbConn = require("../db/dbConfig"); // Your PostgreSQL client or pool
 const { StatusCodes } = require("http-status-codes");
 
 async function getRelatedData(req, res) {
   const { title } = req.body;
+
   if (!title) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Oppsss...Not unable to get this Data",
+      message: "Oops... Unable to get this data, title is required.",
     });
   }
+
   try {
-    const whoAMI = "SELECT Q.* FROM questions Q WHERE title LIKE ?";
-    const [data] = await dbConn.query(whoAMI, [`%${title}%`]);
+    const queryText = `
+      SELECT Q.* 
+      FROM questions Q 
+      WHERE title ILIKE $1
+    `;
+
+    // Use ILIKE for case-insensitive search in Postgres
+    const { rows: data } = await dbConn.query(queryText, [`%${title}%`]);
 
     if (data.length === 0) {
       return res.status(StatusCodes.NOT_FOUND).json({
@@ -18,18 +26,19 @@ async function getRelatedData(req, res) {
       });
     }
 
-    console.log(data);
+    // console.log(data);
 
     return res.status(StatusCodes.OK).json({
       message: "Related questions fetched successfully.",
-      data: data,
+      data,
     });
   } catch (err) {
-    console.log(err.message);
+    console.error("getRelatedData Error:", err.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: err.message,
-      message: "Something Went Wrong .try again later!ss",
+      message: "Something went wrong. Please try again later.",
     });
   }
 }
+
 module.exports = { getRelatedData };

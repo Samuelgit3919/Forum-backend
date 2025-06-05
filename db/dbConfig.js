@@ -1,39 +1,38 @@
-const mysql2 = require("mysql2");
-
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const dbConn = mysql2.createPool({
+// Create a PostgreSQL connection pool
+const dbConn = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  password:process.env.DB_PASSWORD,
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
-  waitForConnections: true,
   ssl: {
-    rejectUnauthorized: false // This bypasses certificate validation
-  }
+    rejectUnauthorized: false, // Optional, used for production environments like Supabase/Render
+  },
 });
-
-// Get the promise-based version of the connection
-const promisePool = dbConn.promise();
 
 // Test the connection
-dbConn.getConnection((err, connection) => {
+dbConn.query('SELECT NOW()', (err, res) => {
   if (err) {
-    console.error("Error connecting to the database:", err.message);
+    console.error('❌ Connection failed:', err.message);
   } else {
-    console.log("Connected to the database.");
-    connection.release();
+    console.log('✅ Connected! Time:', res.rows[0].now);
   }
 });
+
 
 // Function to create tables
 const createTables = async () => {
   try {
-    // Create users table
-    await promisePool.query(`
+    await dbConn.query(`
+      CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    `);
+
+    await dbConn.query(`
       CREATE TABLE IF NOT EXISTS users (
-        user_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         username VARCHAR(50) UNIQUE NOT NULL,
         first_name VARCHAR(50) NOT NULL,
         last_name VARCHAR(50) NOT NULL,
@@ -43,38 +42,42 @@ const createTables = async () => {
       )
     `);
 
-    // Create questions table
-    await promisePool.query(`
+    await dbConn.query(`
       CREATE TABLE IF NOT EXISTS questions (
-        question_id INT AUTO_INCREMENT PRIMARY KEY,
+        question_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         title VARCHAR(200) NOT NULL,
         description TEXT NOT NULL,
-        user_id INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Create answers table
-    await promisePool.query(`
+    await dbConn.query(`
       CREATE TABLE IF NOT EXISTS answers (
-        answer_id INT AUTO_INCREMENT PRIMARY KEY,
-        question_id INT NOT NULL,
-        user_id INT NOT NULL,
+        answer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        question_id UUID NOT NULL REFERENCES questions(question_id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (question_id) REFERENCES questions(question_id) ON DELETE CASCADE
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    console.log("Tables created successfully.");
+    console.log("Tables created successfully with UUID support.");
   } catch (error) {
     console.error("Error creating tables:", error.message);
   }
 };
+// const dropTables = async () => {
+//   try {
+//     await dbConn.query('DROP TABLE IF EXISTS answers, questions, users CASCADE');
+//     console.log("Tables dropped successfully.");
+//   } catch (error) {
+//     console.error("Error dropping tables:", error.message);
+//   }
+// };
 
-// Run the table creation function
+// Run table creation
 createTables();
+// dropTables()
 
-module.exports = promisePool;
+module.exports = dbConn;

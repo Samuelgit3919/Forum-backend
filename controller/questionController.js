@@ -2,95 +2,116 @@ const dbConn = require("../db/dbConfig");
 const { v4: uuidv4 } = require("uuid");
 const { StatusCodes } = require("http-status-codes");
 
+// Get all questions
 async function getAllQuestion(req, res) {
   try {
-    const fetchQuestion =
-      "SELECT Q.question_id, Q.title, Q.description, Q.created_at, U.username FROM questions Q JOIN users U ON U.user_id = Q.user_id ORDER BY created_at DESC";
-    const [data] = await dbConn.query(fetchQuestion);
-    console.log(data.length);
-    if (!data || data.length === 0) {
+    const query = `
+      SELECT 
+        Q.question_id, 
+        Q.title, 
+        Q.description, 
+        Q.created_at, 
+        U.username
+      FROM questions Q
+      JOIN users U ON Q.user_id = U.user_id
+      ORDER BY Q.created_at DESC
+    `;
+
+    const { rows } = await dbConn.query(query);
+
+    if (rows.length === 0) {
       return res.status(StatusCodes.NOT_FOUND).json({
-        error: "404 Not Found",
+        error: "Not Found",
         message: "No questions found.",
       });
     }
-    return res.status(StatusCodes.OK).json({
-      questions: data,
-    });
+
+    return res.status(StatusCodes.OK).json({ questions: rows });
   } catch (err) {
-    console.log(err.message);
+    console.error("getAllQuestion Error:", err.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: "Internal Server Error",
-      message: "An unexpected error occurred.",
+      message: "An unexpected error occurred while fetching questions.",
     });
   }
 }
 
+// Ask a new question
 async function askQuestion(req, res) {
   const { title, description } = req.body;
-  // Change from user_id to userId to match what's in your token
-  const { userId } = req.user; // Changed from user_id to userId
+  const { userId } = req.user;
+  console.log(title, description);
 
-  // console.log("User ID from token:", userId); // Better logging
   if (!title || !description) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       error: "Bad Request",
-      message: "Please provide all required fields",
+      message: "Title and description are required.",
     });
   }
 
   try {
     const questionId = uuidv4();
-    console.log("Generated question ID:", questionId);
-   const postQue = "INSERT INTO questions (title, description, user_id) VALUES (?,?,?)";
+    const query = `
+      INSERT INTO questions (question_id, title, description, user_id)
+      VALUES ($1, $2, $3, $4)
+      RETURNING question_id
+    `;
 
-    const [result] = await dbConn.query(postQue, [title, description, userId]);
-    console.log("Insert result:", result); // Log the result of the insert operation
+    const { rows } = await dbConn.query(query, [
+      questionId,
+      title,
+      description,
+      userId,
+    ]);
+
     return res.status(StatusCodes.CREATED).json({
       message: "Question posted successfully.",
-      questionId: result.insertId,
+      questionId: rows[0].question_id,
     });
   } catch (err) {
-    console.log("Database error:", err.message);
+    console.error("askQuestion Error:", err.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: "Internal Server Error",
-      message: "An unexpected error occurred.",
+      message: "Failed to post question. Please try again later.",
     });
   }
 }
 
+// Get a single question by ID
 async function getSingleQuestion(req, res) {
   const { question_id } = req.params;
-  console.log(question_id);
 
   if (!question_id) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      // Added return statement
       error: "Bad Request",
       message: "Question ID is required.",
     });
   }
 
   try {
-    const getSingleQue = "SELECT * FROM questions WHERE question_id = ?";
-    const [data] = await dbConn.query(getSingleQue, [question_id]);
-    console.log(data);
-    if (!data || data.length === 0) {
+    const query = `SELECT * FROM questions WHERE question_id = $1`;
+    const { rows } = await dbConn.query(query, [question_id]);
+
+    if (rows.length === 0) {
       return res.status(StatusCodes.NOT_FOUND).json({
         error: "Not Found",
-        message: "The requested question could not be found.",
+        message: "Question not found.",
       });
     }
-    return res.status(StatusCodes.OK).json({
-      question: data[0], // Return first item since it's a single question
-    });
+
+    return res.status(StatusCodes.OK).json({ question: rows[0] });
   } catch (err) {
-    console.log(err.message);
+    console.error("getSingleQuestion Error:", err.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: "Internal Server Error",
-      message: "An unexpected error occurred.",
+      message: "Failed to fetch the question. Try again later.",
     });
   }
 }
 
-module.exports = { getSingleQuestion, getAllQuestion, askQuestion };
+// Export all functions at once
+module.exports = {
+  getAllQuestion,
+  askQuestion,
+  getSingleQuestion,
+};

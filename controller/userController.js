@@ -6,7 +6,8 @@ const jwt = require("jsonwebtoken");
 
 async function register(req, res) {
   const { username, first_name, last_name, email, password } = req.body;
-  console.log("register", username, first_name, last_name, email, password);
+
+  // console.log(username, first_name, last_name, email, password)
 
   if (!username || !first_name || !last_name || !email || !password) {
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -16,116 +17,120 @@ async function register(req, res) {
   }
 
   try {
-    const [existingUser] = await dbConnection.query(
-      "select user_id,username from users where username=? or email=?",
-      [username, email]
-    );
+    const existingUserQuery = `
+      SELECT user_id, username FROM users WHERE username = $1 OR email = $2
+    `;
+    const existingUserResult = await dbConnection.query(existingUserQuery, [username, email]);
 
-    if (existingUser.length > 0) {
+    if (existingUserResult.rows.length > 0) {
       return res.status(StatusCodes.CONFLICT).json({
         error: "Conflict",
-        message: "User already existed",
+        message: "User already exists",
       });
     }
 
-    if (password.length <= 8) {
+    if (password.length < 8) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         error: "Bad Request",
-        message: "password must be at least 8 characters",
+        message: "Password must be at least 8 characters",
       });
     }
 
     const salt = await bcrypt.genSalt(10);
-    const hashedpassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const insertUser =
-      "INSERT INTO users ( username, first_name, last_name, email, password) VALUE (?,?,?,?,?)";
+    const insertQuery = `
+      INSERT INTO users (username, first_name, last_name, email, password)
+      VALUES ($1, $2, $3, $4, $5)
+    `;
 
-    await dbConnection.query(insertUser, [
+    await dbConnection.query(insertQuery, [
       username,
       first_name,
       last_name,
       email,
-      hashedpassword,
+      hashedPassword,
     ]);
 
     return res.status(StatusCodes.CREATED).json({
       message: "User registered successfully",
     });
   } catch (error) {
-    console.log(error.message);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    console.error("Error registering user:", error.message);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: "Internal Server Error",
-      message: "Something Went Wrong .try again later!",
+      message: "Something went wrong. Try again later!",
     });
   }
 }
+
 // End of register function
 
-async function login(req, res) {
+const login = async (req, res) => {
   const { email, password } = req.body;
-  console.log(email, password);
+  // console.log("Attempting login:", email);
 
   if (!email || !password) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       error: "Bad Request",
-      message: "Please provide all required fields",
+      message: "Please provide both email and password",
     });
   }
 
   try {
-    const [user] = await dbConnection.query(
-      "select email,user_id ,username ,password from users where  email=? ",
-      [email]
-    );
+    // Use $1 placeholder for PostgreSQL parameterized query
+    const queryText = `SELECT user_id, username, email, password FROM users WHERE email = $1`;
+    const { rows } = await dbConnection.query(queryText, [email]);
 
-    if (user.length == 0) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        error: "Unauthorized",
-        message: "Invalid username or password",
-      });
-    }
-
-    const isMatched = await bcrypt.compare(password, user[0].password);
-    if (!isMatched) {
+    if (rows.length === 0) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
-        message: "Invalid username or password",
+        error: "Unauthorized",
+        message: "Invalid email or password",
       });
     }
 
-    const userName = user[0].username;
-    const userId = user[0].user_id;
+    const user = rows[0];
 
-    console.log(userName, userId);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        error: "Unauthorized",
+        message: "Invalid email or password",
+      });
+    }
 
-    const token = jwt.sign(
-      {
-        userName,
-        userId,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    // Create JWT payload
+    const payload = {
+      userId: user.user_id,
+      userName: user.username,
+      email: user.email,
+    };
 
-    res.status(StatusCodes.OK).json({
-      message: "user login successfully",
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.status(StatusCodes.OK).json({
+      message: "User login successful",
       token,
-      userName,
+      user: payload,
     });
   } catch (error) {
-    console.log(error.message);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    console.error("Login Error:", error.message);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: "Internal Server Error",
-      message: "Something Went Wrong .try again later!",
+      message: "Something went wrong. Try again later!",
     });
   }
-}
+};
+
+
 // End of Login function
 
 async function checkUser(req, res) {
   const username = req.user.userName;
   const userid = req.user.user_id;
-  console.log(userid, username);
+  // console.log(userid, username);
   res.status(StatusCodes.OK).json({ msg: "sami", username, userid });
 }
 
